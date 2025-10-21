@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini RAG Chatbot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo-image">
+        </div>
+        
+        <div class="language-selector">
+            <a href="{{ url_for('upload_file', lang='tr') }}" class="language-btn {% if lang == 'tr' %}active{% endif %}">TR</a>
+            <a href="{{ url_for('upload_file', lang='en') }}" class="language-btn {% if lang == 'en' %}active{% endif %}">EN</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <section class="hero-section">
+            <h1>{% if lang == 'tr' %}PDF'inizle <span class="highlight">Sohbet Edin</span>{% else %}Chat with Your <span class="highlight">PDF</span>{% endif %}</h1>
+            <p class="subtitle">{% if lang == 'tr' %}Akademik makalenizi yükleyin ve içeriği hakkında sorular sorun, özetini çıkarın.{% else %}Upload your academic paper and ask questions about its content, generate a summary.{% endif %}</p>
+        </section>
+
+        <div class="upload-container">
+            <form method="POST" enctype="multipart/form-data" action="{{ url_for('upload_file') }}" class="upload-form">
+                <input type="hidden" name="lang" value="{{ lang }}">
+                <div class="file-input-container">
+                    <input type="file" id="pdf_file" name="pdf_file" accept=".pdf" required>
+                    <label for="pdf_file">
+                        <div class="upload-icon-wrapper">
+                            <i class="fas fa-file-upload upload-icon"></i>
+                        </div>
+                        <p class="upload-text">{% if lang == 'tr' %}PDF Dosyanızı Sürükleyin veya Tıklayın{% else %}Drag and Drop or Click to Upload PDF{% endif %}</p>
+                        <p class="upload-subtext">{% if lang == 'tr' %}Maksimum dosya boyutu: 10 MB{% else %}Maximum file size: 10 MB{% endif %}</p>
+                    </label>
+                </div>
+                
+                <button type="submit" class="submit-button">
+                    {% if lang == 'tr' %}Yükle ve Başlat{% else %}Upload and Start{% endif %} 
+                    <i class="fas fa-arrow-right button-icon"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
