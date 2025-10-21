@@ -1,0 +1,14 @@
+# Flask ve Web sunucusu için
+Flask
+python-dotenv  # .env dosyasından GOOGLE_API_KEY okumak için
+
+# RAG ve Gemini Entegrasyonu için
+google-genai
+langchain
+langchain-chroma
+langchain-google-genai
+
+# Veri işleme ve PDF okuma için
+PyPDF2
+numpy
+pandas
