@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ filename }} | Chat</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="viewer-page">
+    <nav class="navbar">
+        <div class="logo">
+            <a href="{{ url_for('upload_file') }}" class="back-button">
+                <i class="fas fa-arrow-left"></i> 
+                {% if lang == 'tr' %}Geri{% else %}Back{% endif %}
+            </a>
+        </div>
+        <div class="nav-controls">
+            <div class="language-selector">
+                <a href="{{ url_for('upload_file', lang='tr') }}" class="language-btn {% if lang == 'tr' %}active{% endif %}">TR</a>
+                <a href="{{ url_for('upload_file', lang='en') }}" class="language-btn {% if lang == 'en' %}active{% endif %}">EN</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="content-wrapper">
+        <div class="pdf-container">
+            <embed src="{{ url_for('uploaded_file', filename=filename) }}" type="application/pdf" />
+        </div>
+
+        <div class="chat-container">
+            
+            <div class="summary-toggle">
+                <button class="summary-button" onclick="toggleSummary()">
+                    <span>{% if lang == 'tr' %}Makale Özeti ve Analiz{% else %}Article Summary & Analysis{% endif %}</span>
+                    <span class="toggle-icon"><i class="fas fa-chevron-down"></i></span>
+                </button>
+            </div>
+
+            <div id="summaryWrapper" class="summary-wrapper">
+                 <div class="summary-message">
+                    <h3>{% if lang == 'tr' %}Makale Özeti{% else %}Article Summary{% endif %}</h3>
+                    <p>{{ summary | safe }}</p>
+                </div>
+            </div>
+            
+            <div class="chat-messages" id="chatMessages">
+                <div class="welcome-message">
+                    <h3>{% if lang == 'tr' %}Merhaba!{% else %}Hello!{% endif %}</h3>
+                    <p>{% if lang == 'tr' %}Makaleniz yüklendi. İçeriği hakkında sorular sormaya başlayabilirsiniz.{% else %}Your paper is uploaded. You can start asking questions about its content.{% endif %}</p>
+                </div>
+            </div>
+
+            <div class="chat-input-container">
+                <input type="text" id="userInput" placeholder="{% if lang == 'tr' %}Makale hakkında bir soru sorun...{% else %}Ask a question about the paper...{% endif %}" required>
+                <button onclick="sendMessage()">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chatMessages');
+        const userInput = document.getElementById('userInput');
+        const summaryWrapper = document.getElementById('summaryWrapper');
+        const toggleIcon = document.querySelector('.toggle-icon i');
+        const currentLang = "{{ lang }}";
+
+        // Sayfa yüklendiğinde özet kutusunu varsayılan olarak açık tutmak için CSS'ten gelen 'max-height: 0' ayarını geçersiz kılalım
+        document.addEventListener('DOMContentLoaded', () => {
+            // Summary wrapper'ın başlangıçta açık olması için max-height'ı ayarla
+            summaryWrapper.style.maxHeight = summaryWrapper.scrollHeight + "px";
+            toggleIcon.classList.add('fa-chevron-up');
+            toggleIcon.classList.remove('fa-chevron-down');
+        });
+
+        function toggleSummary() {
+            if (summaryWrapper.style.maxHeight && summaryWrapper.style.maxHeight !== '0px') {
+                // Kapat (maxHeight'i sıfırla)
+                summaryWrapper.style.maxHeight = '0px';
+                toggleIcon.classList.remove('fa-chevron-up');
+                toggleIcon.classList.add('fa-chevron-down');
+            } else {
+                // Aç (scrollHeight kadar genişlet)
+                summaryWrapper.style.maxHeight = summaryWrapper.scrollHeight + "px";
+                toggleIcon.classList.add('fa-chevron-up');
+                toggleIcon.classList.remove('fa-chevron-down');
+            }
+        }
+
+        // Kullanıcı mesajı ekleme
+        function appendUserMessage(message) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message user-message';
+            msgDiv.textContent = message;
+            chatMessages.appendChild(msgDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight; // Kaydırma
+        }
+
+        // Asistan (AI) mesajı ekleme
+        function appendAssistantMessage(message) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message assistant-message';
+            // Satır sonlarını HTML'e çevir ve Markdown için özel işlem yapma, LLM'in cevabı düz metin gelecektir.
+            msgDiv.innerHTML = message.replace(/\n/g, '<br>'); 
+            chatMessages.appendChild(msgDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Loading animasyonu ekleme
+        function addLoadingIndicator() {
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'loading';
+            loadingDiv.id = 'loadingIndicator';
+            loadingDiv.textContent = currentLang === 'tr' ? 'Cevap oluşturuluyor...' : 'Generating response...';
+            chatMessages.appendChild(loadingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Loading animasyonunu kaldırma
+        function removeLoadingIndicator() {
+            const loading = document.getElementById('loadingIndicator');
+            if (loading) {
+                loading.remove();
+            }
+        }
+
+        // Sohbet mesajını gönderme
+        async function sendMessage() {
+            const question = userInput.value.trim();
+            if (!question) return;
+
+            // Kullanıcı mesajını ekle
+            appendUserMessage(question);
+            userInput.value = '';
+            
+            // Loading animasyonunu ekle
+            addLoadingIndicator();
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ question: question, lang: currentLang }),
+                });
+
+                const data = await response.json();
+                
+                // Loading'i kaldır ve cevabı ekle
+                removeLoadingIndicator();
+                appendAssistantMessage(data.answer);
+
+            } catch (error) {
+                removeLoadingIndicator();
+                const errorMessage = currentLang === 'tr' ? 
+                    'Üzgünüm, sohbet servisinde bir hata oluştu. Lütfen deploy ayarlarınızı kontrol edin.' : 
+                    'Sorry, an error occurred in the chat service. Please check your deploy settings.';
+                appendAssistantMessage(`<span style="color: red;">${errorMessage}</span>`);
+                console.error('Error sending message:', error);
+            }
+        }
+        
+        // Enter tuşuyla mesaj gönderme
+        userInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
